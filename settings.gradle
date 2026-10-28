@@ -1,1 +1,24 @@
-include ':app', ':test'
+pluginManagement {
+    repositories {
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        // Xposed API 82 只在这个仓库发布
+        maven { url 'https://api.xposed.info/' }
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'JustTrustMeX'
+include ':app'

@@ -14,7 +14,7 @@
         android:layout_width="match_parent"
         android:layout_height="50dp">
 
-        <Toolbar
+        <androidx.appcompat.widget.Toolbar
             android:id="@+id/tb_toolbar"
             android:background="#1baaf2"
             android:layout_width="match_parent"
@@ -34,7 +34,7 @@
                 android:text="系统app"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
-        </Toolbar>
+        </androidx.appcompat.widget.Toolbar>
 
     </LinearLayout>
 

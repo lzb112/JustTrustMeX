@@ -1,30 +1,17 @@
-apply plugin: 'com.android.application'
-//apply plugin: 'stringfog'
-
-
-//stringfog {
-//    // 这是加解密key，可以自由定义。
-//    key 'zhenxi'
-//    // 开关
-//    enable true
-//
-//    // 加解密库的实现类路径，需和上面配置的加解密算法库一致。
-//    implementation 'com.github.megatronking.stringfog.xor.StringFogImpl'
-//    // 指定需加密的代码包路径，可配置多个，未指定将默认全部加密。
-////    fogPackages = ['com.zx.Justmeplush']
-//}
-
+plugins {
+    id 'com.android.application'
+}
 
 android {
-    compileSdkVersion 22
-    buildToolsVersion '25.0.2'
+    namespace 'com.zx.Justmeplush'
+    compileSdk 35
+
     defaultConfig {
         applicationId "com.lzb.Justmeplush"
-        minSdkVersion 19
-        targetSdkVersion 23
-        versionCode 3
-        versionName "3.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        minSdk 21
+        targetSdk 35
+        versionCode 4
+        versionName "4.0"
     }
 
     signingConfigs {
@@ -36,44 +23,57 @@ android {
         }
     }
 
-    lintOptions {
-        checkReleaseBuilds false
-        // Or, if you prefer, you can continue to check for errors in release builds,
-        // but continue the build even when errors are found:
-        abortOnError false
-    }
-
     buildTypes {
         release {
             minifyEnabled false
             signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+        debug {
+            // debug 也用同一套签名，方便直接覆盖安装
+            signingConfig signingConfigs.release
+        }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+
+    packaging {
+        resources {
+            excludes += [
+                    'META-INF/LICENSE',
+                    'META-INF/LICENSE.txt',
+                    'META-INF/NOTICE',
+                    'META-INF/NOTICE.txt',
+                    'META-INF/*.kotlin_module',
+                    'META-INF/AL2.0',
+                    'META-INF/LGPL2.1',
+            ]
+        }
     }
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'com.android.support:appcompat-v7:22.2.1'
-//    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
-//    testImplementation 'junit:junit:4.12'
-//    androidTestImplementation 'com.android.support.test:runner:1.0.2'
-//    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
-
-//    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
-//    implementation 'com.google.android.material:material:1.0.0'
-    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
-    implementation 'com.android.support:design:22.2.1'
-    implementation("com.squareup.okhttp3:okhttp:4.9.3")
-
+    // Xposed 框架 API：只在编译期需要，运行时由框架注入
     compileOnly 'de.robv.android.xposed:api:82'
-//    implementation 'com.github.megatronking.stringfog.xor.StringFogImpl'
 
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+}
 
-
+// AppCompat 会同时拉入 kotlin-stdlib 与旧的 kotlin-stdlib-jdk7/jdk8，
+// 造成 kotlin.collections.jdk8.* 之类的重复类。Kotlin 1.8 起 jdk7/jdk8 已并入 stdlib，
+// 统一强制到同一版本即可消除重复。
+configurations.configureEach {
+    resolutionStrategy {
+        force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
+        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
+        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
+    }
 }

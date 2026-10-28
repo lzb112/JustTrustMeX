@@ -7,11 +7,11 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
-import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.CheckBox;
 import android.widget.ListView;
-import android.widget.Toolbar;
+import androidx.appcompat.widget.Toolbar;
 
 import com.zx.Justmeplush.Bean.AppBean;
 import com.zx.Justmeplush.adapter.MainListViewAdapter;

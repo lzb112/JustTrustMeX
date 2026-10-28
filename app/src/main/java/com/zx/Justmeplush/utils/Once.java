@@ -2,7 +2,7 @@ package com.zx.Justmeplush.utils;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import java.lang.ref.WeakReference;
 import java.util.HashMap;

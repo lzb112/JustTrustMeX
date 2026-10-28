@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.zx.Justmeplush">
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- 模块界面需要列出已安装应用 -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
 
     <application
         android:name=".App"
@@ -11,10 +15,15 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
+
         <activity
             android:name=".Xiaomiquan"
+            android:exported="false"
             android:label="@string/title_activity_xiaomiquan" />
-        <activity android:name=".MainActivity">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -27,10 +36,10 @@
             android:value="true" />
         <meta-data
             android:name="xposeddescription"
-            android:value="超级升级版 by 消失的鱼" />
+            android:value="SSL 抓包助手：绕过 OkHttp 2/3/4/5、Conscrypt、WebView 的证书校验（支持 Android 15）" />
         <meta-data
             android:name="xposedminversion"
-            android:value="54" />
+            android:value="82" />
     </application>
 
 </manifest>
