@@ -4,6 +4,11 @@ Xposed / LSPosed 模块：绕过 SSL Pinning，配合 Charles / Fiddler / mitmpr
 
 **当前版本：4.0（Android 15 / API 35 适配版）**
 
+> 📖 完整排查记录见 [docs/android15-ssl-capture-troubleshooting.md](docs/android15-ssl-capture-troubleshooting.md)
+> —— 包含「微信小程序抓不到包」的三层根因（证书换过 / Magisk 模块 bug / Android 15 namespace 隔离）
+> 与可复用的诊断命令。
+> 🧰 Magisk 证书注入脚本见 [magisk/](magisk/)。
+
 ## 重要设计约束（Android 14/15 上踩过的坑）
 
 这一版最重要的工作不是"加 hook"，而是"删 hook"。旧思路里那些看起来最直接的绕过手段，
@@ -73,23 +78,42 @@ Xposed / LSPosed 模块：绕过 SSL Pinning，配合 Charles / Fiddler / mitmpr
 
 产物：`app/build/outputs/apk/debug/app-debug.apk`
 
-## 使用（必须配合系统证书）
+## 使用
 
-1. 把抓包工具的 CA 证书装进**系统信任区**（不是用户证书，微信等 targetSdk 24+ 的应用不信任用户证书）：
+### 1. 部署证书注入（Magisk，必需）
 
-   ```sh
-   # 以 HttpCanary 为例，subject_hash_old = 87bc3517
-   su -c "cp /path/HttpCanary.pem /apex/com.android.conscrypt/cacerts/87bc3517.0"
-   su -c "chmod 644 /apex/com.android.conscrypt/cacerts/87bc3517.0"
-   ```
+Android 14+ 上 `/apex/com.android.conscrypt/cacerts` 是**只读 ext4**，而且每个 app 进程有
+**独立的 mount namespace**（`unshare` 后不继承 zygote 的挂载），所以「往系统目录拷一次就全局生效」
+的旧做法已经失效。
 
-   `/apex` 是 tmpfs，**重启会丢**。要做成 Magisk 模块在 `service.sh` 里重新复制。
+用 [`magisk/`](magisk/) 里的脚本（基于 AlwaysTrustUserCerts 的修复版）：
 
-2. 安装本模块，在 LSPosed 里启用并勾选目标应用；
-3. 强制停止目标应用后重新打开；
-4. 开始抓包。
+```bash
+adb push magisk/post-fs-data.sh magisk/service.sh /data/local/tmp/
+adb shell "su -c 'cp /data/local/tmp/post-fs-data.sh /data/local/tmp/service.sh \
+                  /data/adb/modules/trustusercerts/ && \
+                  chmod 755 /data/adb/modules/trustusercerts/*.sh'"
+adb reboot
+```
 
-看 LSPosed 日志确认生效，关键行形如：
+验证每个目标进程都应看到 `146`（145 系统证书 + 1 抓包 CA）：
+
+```bash
+for p in $(ps -A | grep tencent.mm | awk '{print $2}'); do
+  echo "pid=$p cnt=$(ls /proc/$p/root/apex/com.android.conscrypt/cacerts/ | wc -l)"
+done
+```
+
+原理、诊断命令、三层根因的完整复盘见
+[docs/android15-ssl-capture-troubleshooting.md](docs/android15-ssl-capture-troubleshooting.md)。
+
+### 2. 安装本模块
+
+在 LSPosed 里启用，勾选目标应用，强制停止目标应用后重新打开。
+
+### 3. 确认 hook 生效
+
+看 LSPosed 日志，关键行形如：
 
 ```
 [JustTrustMeX] load com.tencent.mm sdk=35 pid=19888
@@ -103,11 +127,25 @@ Xposed / LSPosed 模块：绕过 SSL Pinning，配合 Charles / Fiddler / mitmpr
 
 以下场景的证书校验在 native 代码里完成，Java 层 hook 拦不到，需要 Frida 或改 so：
 
-- **微信主网络 mars / mmtls**（native BoringSSL + 自有 pinning）
+- **微信 ilink 网络栈**（`libilink_network.so`）—— 内嵌 27 个公共根 CA（DigiCert / GlobalSign /
+  Entrust / ISRG / GoDaddy / Starfield / USERTrust / Baltimore），编译进 so，不读任何系统证书目录
+- **微信主网络 mars**（`libmarscomm.so` + 自带 OpenSSL 1.0.x）
 - **Cronet**（`libcronet.so`）
 - **Flutter / dart:io**（`libflutter.so`）
 - **阿里 MMTLS / 腾讯自研协议**
 - 把证书 hash 写进 `.so` 做校验的加固应用
 - 应用在 `SSLSession` 建立后自行比对 `getPeerCertificates()` 的逻辑
 
+判断方法：如果某几个域名的请求始终抓不到、而同应用其他域名正常，基本就是走了内嵌 CA 的 native 栈。
+
 这类情况只能改用 Frida（hook `SSL_get_verify_result` / `X509_verify_cert`）或直接改包。
+
+### 附：如何判断某个 so 是否可被证书注入绕过
+
+```bash
+# 是否读系统证书目录（有引用才可能被系统证书影响）
+strings libxxx.so | grep -E "security/cacerts|conscrypt"
+
+# 是否内嵌根证书（数字越大越说明它自建信任库）
+strings libxxx.so | grep -cE "Root Certificate Authority"
+```
